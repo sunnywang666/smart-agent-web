@@ -3,5 +3,8 @@ services:
     name: smart-agent-web
     env: node
     plan: free
-    buildCommand: "npm install"
-    startCommand: "node server.js"
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: ACCESS_TOKEN
+        value: bce-v3/ALTAK-VVTa0jmrNhDHhIZ0pX1gy/7a645e0e306794559acec2ce192deef390e22b74
