@@ -1,53 +1,59 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const bodyParser = require('body-parser');
-const fetch = require('node-fetch');
+const { HmacSHA256 } = require('crypto-js');
+const uuid = require('uuid');
+const axios = require('axios');
+const dayjs = require('dayjs');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static('public'));
 
-const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
-const APP_ID = '6e681b08-9c8f-4601-b7d2-a098671e1370';
-const apiUrl = 'https://qianfan.baidubce.com/v2/app/conversation';
+const AK = process.env.BAIDU_API_KEY;
+const SK = process.env.BAIDU_SECRET_KEY;
+const BOT_NAME = process.env.BAIDU_BOT_NAME || 'your-bot-name'; // 记得替换为你的智能体英文名
 
 app.post('/chat', async (req, res) => {
-  const message = req.body.message;
+    try {
+        const body = {
+            messages: req.body.messages,
+        };
+        const host = 'aip.baidubce.com';
+        const path = `/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions/${BOT_NAME}`;
+        const url = `https://${host}${path}`;
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${ACCESS_TOKEN}`
-  };
+        const method = 'POST';
+        const timestamp = dayjs().toISOString();
+        const authStringPrefix = `bce-auth-v1/${AK}/${timestamp}/1800`;
 
-  const body = JSON.stringify({
-    app_id: APP_ID,
-    messages: [
-      {
-        role: "user",
-        content: message
-      }
-    ]
-  });
+        const signingKey = HmacSHA256(authStringPrefix, SK).toString();
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: headers,
-      body: body
-    });
+        // 创建CanonicalRequest
+        const canonicalHeaders = `host:${host}`;
+        const signedHeaders = 'host';
+        const canonicalRequest = `${method}\n${path}\n\n${canonicalHeaders}`;
+        const signature = HmacSHA256(canonicalRequest, signingKey).toString();
 
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Error calling Qianfan API:', error);
-    res.status(500).send('Internal Server Error');
-  }
+        const authorization = `${authStringPrefix}/${signedHeaders}/${signature}`;
+
+        const response = await axios.post(url, body, {
+            headers: {
+                'Authorization': authorization,
+                'Content-Type': 'application/json',
+                'Host': host
+            }
+        });
+
+        res.json(response.data);
+    } catch (err) {
+        console.error('Error:', err.response ? err.response.data : err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on port ${port}`);
 });
