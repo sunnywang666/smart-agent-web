@@ -13,7 +13,7 @@ app.post('/chat', async (req, res) => {
     const userInput = req.body.message;
 
     const response = await axios.post(
-      'https://appbuilder.baidu.com/api/open/app/conversation',
+      'https://qianfan.baidubce.com/v2/app/conversation',
       {
         app_id: '6e681b08-9c8f-4601-b7d2-a09867e1e370',  // 你的智能体 ID
         query: userInput,
