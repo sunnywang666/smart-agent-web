@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>千帆智能体对话网页</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9; }
+    h1 { color: #333; }
+    #chat-box { border: 1px solid #ccc; padding: 10px; background: #fff; height: 400px; overflow-y: auto; margin-bottom: 10px; }
+    .message { margin: 5px 0; }
+    .user { font-weight: bold; color: #2a8; }
+    .bot { color: #444; }
+    #input-area { display: flex; gap: 10px; }
+    #question { flex-grow: 1; padding: 8px; }
+    #send { padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h1>对话你的智能体</h1>
+  <div id="chat-box"></div>
+  <div id="input-area">
+    <input type="text" id="question" placeholder="请输入你的问题..." />
+    <button id="send">发送</button>
+  </div>
+
+  <script>
+    const appId = "6e681b08-9c8f-4601-b7d2-a098671e1370";
+    let conversationId = null;
+
+    function appendMessage(role, text) {
+      const box = document.getElementById('chat-box');
+      const msg = document.createElement('div');
+      msg.className = 'message ' + role;
+      msg.innerHTML = `<span class="${role}">${role === 'user' ? '你' : '智能体'}：</span> ${text}`;
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendMessage() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) return;
+      appendMessage('user', question);
+      document.getElementById('question').value = '';
+
+      const requestId = crypto.randomUUID();
+
+      fetch('https://qianfan.baidubce.com/chat/eb-invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_id: appId,
+          request_id: requestId,
+          conversation_id: conversationId,
+          input: question
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result && data.result.reply) {
+          appendMessage('bot', data.result.reply);
+        } else {
+          appendMessage('bot', '[未返回有效回答]');
+        }
+        if (data.conversation_id) conversationId = data.conversation_id;
+      })
+      .catch(err => {
+        console.error(err);
+        appendMessage('bot', '[请求出错，请稍后重试]');
+      });
+    }
+
+    document.getElementById('send').addEventListener('click', sendMessage);
+    document.getElementById('question').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
