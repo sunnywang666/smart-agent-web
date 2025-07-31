@@ -36,5 +36,5 @@ app.post('/api/conversation', async (req, res) => {
 });
 
 app.listen(3000, () => {
-  console.log('服务器已启动，监听端口 3000');
+  console.log('服务器已启动，监听端口 ${port}');
 });
